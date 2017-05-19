@@ -1,0 +1,61 @@
+---
+title: "EDA"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+```{r load}
+aisles <- read.csv("../data/aisles.csv")
+departments <- read.csv("../data/departments.csv")
+products <- read.csv("../data/products.csv")
+prior <- read.csv("../../nongit_data/instacart_kaggle/order_products__prior.csv")
+red_prior <- head(prior, n = 10000)
+orders <- read.csv("../../nongit_data/instacart_kaggle/orders.csv")
+red_orders <- head(orders, 10000)
+```
+
+```{r}
+red_orders %>% arrange(order_id)
+red_prior <- red_prior %>% left_join(products)
+red_prior$product_id <- factor(red_prior$product_id)
+red_prior$order_id <- factor(red_prior$order_id)
+red_prior$add_to_cart_order <- factor(red_prior$add_to_cart_order)
+orders$order_id <- factor(orders$order_id)
+red_prior <- red_prior %>% left_join(orders)
+
+test <- red_prior %>%
+        group_by(order_hour_of_day) %>%
+        count(product_name) %>%
+        arrange(order_hour_of_day, desc(n))
+
+red_prior$order_hour_of_day <- factor(red_prior$order_hour_of_day)
+
+ave_times <- red_prior %>% group_by(product_name) %>%
+        count(order_hour_of_day) %>%
+        group_by(product_name) %>%
+        summarise(ave_hour = mean(as.numeric(order_hour_of_day))) %>% 
+        arrange(ave_hour)
+
+ave_times$early <- TRUE
+
+ave_times$early[ave_times$ave_hour > 2] <- FALSE
+
+ave_times$late <- TRUE
+
+ave_times$late[ave_times$ave_hour < 22] <- FALSE
+
+ggplot() +
+        geom_density(data = ave_times[ave_times$early == TRUE,], aes(x = ave_hour), color = "blue") +
+        geom_density(data = ave_times[ave_times$late == TRUE,], aes(x = ave_hour), color = "red")
+
+```
+
+
+
+
+
+
